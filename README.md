@@ -1,2 +1,7 @@
-# SMMWELevelManager
-SMMWE Level Manager
+# SMMWE Level Manager
+
+《SMM:WE》 的关卡管理器。
+
+目前只支持管理本地关卡，日后会添加在线功能。
+
+使用的开源库：VBJSON、stdPictureEx v2
