@@ -1,6 +1,6 @@
 VERSION 5.00
 Object = "{A2A736C2-8DAC-4CDB-B1CB-3B077FBB14F9}#6.2#0"; "VB6Resizer2.ocx"
-Begin VB.Form frmImport 
+Begin VB.Form frmExport 
    BackColor       =   &H80000005&
    Caption         =   "Form1"
    ClientHeight    =   4245
@@ -16,7 +16,7 @@ Begin VB.Form frmImport
       Italic          =   0   'False
       Strikethrough   =   0   'False
    EndProperty
-   Icon            =   "frmImport.frx":0000
+   Icon            =   "frmExport.frx":0000
    LinkTopic       =   "Form1"
    ScaleHeight     =   4245
    ScaleWidth      =   7800
@@ -41,7 +41,6 @@ Begin VB.Form frmImport
       EndProperty
       Height          =   4020
       Left            =   2760
-      OLEDropMode     =   1  'Manual
       Style           =   1  'Checkbox
       TabIndex        =   4
       Tag             =   "HW"
@@ -56,7 +55,7 @@ Begin VB.Form frmImport
       Top             =   3720
       Width           =   735
    End
-   Begin VB.CommandButton cmdImport 
+   Begin VB.CommandButton cmdExport 
       Caption         =   "导入"
       Height          =   375
       Left            =   120
@@ -86,7 +85,7 @@ Begin VB.Form frmImport
       Width           =   2535
    End
 End
-Attribute VB_Name = "frmImport"
+Attribute VB_Name = "frmExport"
 Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
@@ -121,32 +120,21 @@ End Sub
 Private Sub Form_Initialize()
     InitCommonControls
 End Sub
-Private Sub cmdImport_Click()
+Private Sub cmdExport_Click()
     Dim ItemNum As Long, RetText As String, fso As New FileSystemObject
     For ItemNum = 0 To List1.ListCount - 1
         If List1.Selected(ItemNum) Then
             If List1.List(ItemNum) <> "" Then
                 RetText = RetText & List1.List(ItemNum) & " "
-                fso.CopyFile Dirs.Path & "\" & List1.List(ItemNum), LevelPath & "\" & List1.List(ItemNum), True
+                fso.CopyFile LevelPath & "\" & List1.List(ItemNum), Dirs.Path & "\" & List1.List(ItemNum), True
             End If
         End If
     Next
-    If RetText <> "" Then
-    MsgBox RetText & ConstStr("import_completed")
-    frmMain.LoadLocalLevels
+    If RetText <> "" Then MsgBox RetText & ConstStr("export_completed")
     Me.Hide
     Unload Me
-    End If
 End Sub
 
-Private Sub Dirs_Change()
-    On Error Resume Next
-    List1.Clear
-    Dim LevelFile As Variant
-    For Each LevelFile In GetFileList(Dirs.Path, "*.swe")
-        List1.AddItem LevelFile
-    Next LevelFile
-End Sub
 
 Private Sub Drvs_Change()
     Dirs.Path = UCase(Split(Drvs.Drive, ":")(0)) & ":\"
@@ -154,25 +142,17 @@ End Sub
 
 
 Private Sub Form_Load()
-    Me.Caption = ConstStr("title") & " " & App.Major & "." & App.Minor & "." & App.Revision & " - " & ConstStr("t_import")    '窗口标题
-    cmdImport.Caption = ConstStr("import")
+    Me.Caption = ConstStr("title") & " " & App.Major & "." & App.Minor & "." & App.Revision & " - " & ConstStr("t_export")    '窗口标题
+    cmdExport.Caption = ConstStr("export")
     cmdCancel.Caption = ConstStr("cancel")
     cmdDesktop.Caption = ConstStr("desktop")
     cmdDesktop.ToolTipText = ConstStr("right_change")
     List1.ToolTipText = ConstStr("drag_tooltip")
-    List1.OLEDropMode = 1
+    List1.Clear
+    Dim LevelFile As Variant
+    For Each LevelFile In GetFileList(LevelPath, "*.swe")
+        List1.AddItem LevelFile
+    Next LevelFile
     Dirs.Path = App.Path
 End Sub
 
-
-Private Sub List1_OLEDragDrop(Data As DataObject, Effect As Long, Button As Integer, Shift As Integer, X As Single, Y As Single)
-    Dim fso As New FileSystemObject, Paths() As String
-    If LCase(Right(Data.Files(1), 4)) = ".swe" Then
-        Paths = Split(Data.Files(1), "\")
-        fso.CopyFile Data.Files(1), LevelPath & "\" & Paths(UBound(Paths)), True
-        MsgBox Data.Files(1) & " " & ConstStr("import_completed")
-    frmMain.LoadLocalLevels
-    Else
-        MsgBox ConstStr("not_a_level")
-    End If
-End Sub

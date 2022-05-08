@@ -112,8 +112,24 @@ Begin VB.Form frmMain
    Begin VB.Menu mExport 
       Caption         =   "导出"
    End
+   Begin VB.Menu mDelete 
+      Caption         =   "删除"
+   End
+   Begin VB.Menu mMore 
+      Caption         =   "更多"
+      Begin VB.Menu mOpenLevelFolder 
+         Caption         =   "打开关卡文件夹"
+      End
+      Begin VB.Menu mClearCache 
+         Caption         =   "清理缓存"
+      End
+      Begin VB.Menu mRefresh 
+         Caption         =   "刷新"
+      End
+   End
    Begin VB.Menu mAccount 
       Caption         =   "登录"
+      Visible         =   0   'False
    End
    Begin VB.Menu mAbout 
       Caption         =   "关于"
@@ -135,51 +151,27 @@ Private Sub Form_Load()
     '加载配置
     frmDummy.Show
     DoEvents
-    Debug.Print "程序启动"
     Set Conf = JSON.parse(ReadTextFile(App.Path & "\conf.json"))    '加载配置文件
     Set ConstStr = JSON.parse(ReadTextFile(App.Path & "\assets\locale-" & Conf("locale") & ".json"))    '加载语言文件
-    If ConstStr("id") <> Conf("locale") Then MsgBox "Fatal Error: 语言 ID 和配置不匹配", vbCritical: End
-    Debug.Print "加载语言 " & Conf("locale") & " " & ConstStr("name")
     frmDummy.Label1.Caption = ConstStr("loading") & ConstStr("loading_configuration")
     DoEvents
     Set ConstStr = ConstStr("locale")
-    Me.Caption = ConstStr("title") & " " & App.Major & "." & App.Minor & "." & App.Revision & " - 本地关卡"    '窗口标题
+    Me.Caption = ConstStr("title") & " " & App.Major & "." & App.Minor & "." & App.Revision & " - " & ConstStr("t_local_levels")    '窗口标题
     LevelPath = Environ("UserProfile") & "\AppData\Local\SMM_WE\Niveles"    '关卡路径
-    If Dir(LevelPath, vbDirectory) = "" Then MsgBox "请先在游戏里保存至少一个关卡", vbCritical: End
-    '加载列标头
-    lst.ListItems.Clear
-    lst.ColumnHeaders.Clear
-    lst.ColumnHeaders.Add 1, "Icon", ConstStr("game_style"), 1100
-    lst.ColumnHeaders.Add 2, "Maker", ConstStr("author"), 1300
-    lst.ColumnHeaders.Add 3, "Level", ConstStr("level"), 5000
-    lst.FullRowSelect = True
-    lst.GridLines = True
-    '加载关卡
-    LevelList = GetFileList(LevelPath, "*.swe")
-    For Each SingleLevel In LevelList
-        frmDummy.Label1.Caption = ConstStr("loading") & ConstStr("loading_level") & vbCrLf & SingleLevel
-        DoEvents
-        Debug.Print "读取关卡 " & SingleLevel & " 到内存"
-        LevelMeta.Add Base64Encode(CStr(SingleLevel)), ReadLevel(CStr(SingleLevel))    '用解析函数加载关卡dictionary
-    Next SingleLevel
-    For Each SingleLevel In LevelMeta.keys
-        i = i + 1
-        GameStyle = ConstStr("game_styles")(CInt(LevelMeta(SingleLevel)("MAIN")("AJUSTES")(1)("apariencia")) + 1)
-        lst.ListItems.Add i, CStr(i), GameStyle, , GameStyle
-        lst.ListItems(i).SubItems(1) = LevelMeta(SingleLevel)("MAIN")("AJUSTES")(1)("user")
-        LevelName = Base64Decode(CStr(SingleLevel))
-        lst.ListItems(i).SubItems(2) = Left(LevelName, Len(LevelName) - 4)
-        Debug.Print "绘制关卡条目 " & LevelName
-        frmDummy.Label1.Caption = ConstStr("loading") & ConstStr("loading_level") & vbCrLf & LevelName
-        DoEvents
-        lst.ListItems(i).Tag = CStr(SingleLevel)
-    Next SingleLevel
+    If Dir(LevelPath, vbDirectory) = "" Then MsgBox ConstStr("err_need_a_level"), vbCritical: End    '关卡文件夹是否存在
+    If Dir(App.Path & "\cache", vbDirectory) = "" Then MkDir App.Path & "\cache"    '创建缓存文件夹
+    LoadLocalLevels
     lblLevel.Caption = ConstStr("click_to_show")
     frm.Caption = ConstStr("level_details")
     mImport.Caption = ConstStr("import")
     mExport.Caption = ConstStr("export")
     mAbout.Caption = ConstStr("about")
     mAccount.Caption = ConstStr("login")
+    mDelete.Caption = ConstStr("delete")
+    mMore.Caption = ConstStr("more")
+    mRefresh.Caption = ConstStr("refresh")
+    mOpenLevelFolder.Caption = ConstStr("open_level_folder")
+    mClearCache.Caption = ConstStr("clear_cache")
     frmDummy.Hide
     Unload frmDummy
 End Sub
@@ -200,7 +192,7 @@ Private Sub lst_Click()
     lblLevel.Caption = lblLevel.Caption & vbCrLf & ConstStr("modify_date") & ": " & SingleMeta("date") & " " & SingleMeta("time")
     lblLevel.Caption = lblLevel.Caption & vbCrLf & ConstStr("timer") & ": " & SingleMeta("cronometro")
     lblLevel.Caption = lblLevel.Caption & vbCrLf & ConstStr("autoscroll") & ": " & SingleMeta("autoavance") & "x"
-    lblLevel.Caption = lblLevel.Caption & vbCrLf & ConstStr("size") & ": " & GetFileSize(LevelPath & "\" & Base64Decode(lst.SelectedItem.Tag) & ".swe")
+    lblLevel.Caption = lblLevel.Caption & vbCrLf & ConstStr("size") & ": " & GetFileSize(LevelPath & "\" & Base64Decode(lst.SelectedItem.Tag))
     If Conf("locale") = "es_ES" Then
         TagClass = "es"
     Else
@@ -229,11 +221,80 @@ Private Sub lst_Click()
     imgStage3.Picture = StdPic.LoadPictureEx(App.Path & "\assets\day_night\day_night-" & SingleMeta("modo_noche") & ".png")
 End Sub
 
+Private Sub mAbout_Click()
+    frmAbout.Show
+End Sub
+
+
+Private Sub mClearCache_Click()
+    MsgBox ConstStr("clear_cache_text")(1) & GetFolderSize(App.Path & "\cache") & ConstStr("clear_cache_text")(2)
+    ShellAndWait "cmd /c rd /s /q """ & App.Path & "\cache"""
+    Do Until Dir(App.Path & "\cache", vbDirectory) = ""
+        Sleep 200
+    Loop
+    MkDir App.Path & "\cache"
+End Sub
+
+Private Sub mDelete_Click()
+'删除关卡
+    Dim LevelName As String
+    LevelName = Base64Decode(lst.SelectedItem.Tag)
+    If MsgBox(ConstStr("delete_text")(1) & LevelName & ConstStr("delete_text")(2), vbYesNo) = vbYes Then
+        Kill LevelPath & "\" & LevelName
+        Kill App.Path & "\cache\" & LevelName & ".cache"
+        MsgBox LevelName & " " & ConstStr("delete_text")(3)
+        LoadLocalLevels
+    End If
+End Sub
+
 Private Sub mImport_Click()
     frmImport.Show
 End Sub
+Private Sub mExport_Click()
+    frmExport.Show
+End Sub
+
+Private Sub mOpenLevelFolder_Click()
+    Shell "cmd /c start """" """ & LevelPath & """"
+End Sub
+
+Private Sub mRefresh_Click()
+    LoadLocalLevels
+End Sub
 
 Private Sub Resizer_AfterResize()
+    On Error Resume Next
+    lst.ColumnHeaders(3).Width = frmMain.Width - 4750
+End Sub
+
+Public Sub LoadLocalLevels()
+'加载列标头
+    LevelMeta.RemoveAll
+    lst.ListItems.Clear
+    lst.ColumnHeaders.Clear
+    lst.ColumnHeaders.Add 1, "Icon", ConstStr("game_style"), 1100
+    lst.ColumnHeaders.Add 2, "Maker", ConstStr("author"), 1300
+    lst.ColumnHeaders.Add 3, "Level", ConstStr("level"), 5000
+    lst.FullRowSelect = True
+    lst.GridLines = True
+    '加载关卡
+    LevelList = GetFileList(LevelPath, "*.swe")
+    For Each SingleLevel In LevelList
+        frmDummy.Label1.Caption = ConstStr("loading") & ConstStr("loading_level") & vbCrLf & SingleLevel
+        DoEvents
+        LevelMeta.Add Base64Encode(CStr(SingleLevel)), ReadLevel(CStr(SingleLevel))    '用解析函数加载关卡dictionary
+    Next SingleLevel
+    For Each SingleLevel In LevelMeta.keys
+        i = i + 1
+        GameStyle = ConstStr("game_styles")(CInt(LevelMeta(SingleLevel)("MAIN")("AJUSTES")(1)("apariencia")) + 1)
+        lst.ListItems.Add i, CStr(i), GameStyle, , GameStyle
+        lst.ListItems(i).SubItems(1) = LevelMeta(SingleLevel)("MAIN")("AJUSTES")(1)("user")
+        LevelName = Base64Decode(CStr(SingleLevel))
+        lst.ListItems(i).SubItems(2) = Replace(LevelName, ".swe", "")
+        frmDummy.Label1.Caption = ConstStr("loading") & ConstStr("loading_level") & vbCrLf & LevelName
+        DoEvents
+        lst.ListItems(i).Tag = CStr(SingleLevel)
+    Next SingleLevel
     On Error Resume Next
     lst.ColumnHeaders(3).Width = frmMain.Width - 4750
 End Sub

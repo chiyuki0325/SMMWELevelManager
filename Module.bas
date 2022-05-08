@@ -6,6 +6,8 @@ Attribute LevelPath.VB_VarUserMemId = 1073741826
 Public LevelMeta As New Dictionary
 Attribute LevelMeta.VB_VarUserMemId = 1073741827
 
+
+Public Declare Sub Sleep Lib "kernel32.dll" (ByVal dwMilliseconds As Long)
 Public Declare Function SysReAllocString Lib "oleaut32.dll" (ByVal pBSTR As Long, Optional ByVal pszStrPtr As Long) As Long
 Public Declare Sub CoTaskMemFree Lib "ole32.dll" (ByVal pv As Long)
 Public Declare Sub InitCommonControls Lib "comctl32.dll" ()
@@ -56,9 +58,17 @@ Function GetFileList(ByVal Path As String, Optional fExp As String = "*.*") As S
 End Function
 
 Public Function ReadLevel(ByVal LevelName As String) As Object
-    Dim Content As String
-    Content = ReadTextFile(LevelPath & "\" & LevelName)
-    Set ReadLevel = JSON.parse(Base64Decode(Left(Content, Len(Content) - 40)))
+    If CheckFileExists(App.Path & "\cache\" & LevelName & ".cache") Then
+        Set ReadLevel = JSON.parse(ReadTextFile(App.Path & "\cache\" & LevelName & ".cache"))
+    Else
+        Dim Content As String
+        Content = ReadTextFile(LevelPath & "\" & LevelName)
+        Content = Base64Decode(Left(Content, Len(Content) - 40))
+        Set ReadLevel = JSON.parse(Content)
+        Open App.Path & "\cache\" & LevelName & ".cache" For Output As #2
+        Print #2, Content;
+        Close #2
+    End If
 End Function
 Function GetFileSize(someFile)
     Dim fs
@@ -69,10 +79,19 @@ Function GetFileSize(someFile)
     Set File = Nothing
     Set fs = Nothing
 End Function
+Function GetFolderSize(someFile)
+    Dim fs
+    Dim File
+    Set fs = CreateObject("Scripting.FileSystemObject")
+    Set File = fs.GetFolder(someFile)
+    GetFolderSize = FormatFileSize(File.Size)
+    Set File = Nothing
+    Set fs = Nothing
+End Function
 Function FormatFileSize(Size)
     Dim units
     Dim factor
-    units = Array("B", "kB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
+    units = Array("B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
     factor = Log(Size) \ 7
     FormatFileSize = Round(Size / (1024 ^ factor), 2) & units(factor)
 End Function

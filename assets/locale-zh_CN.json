@@ -3,7 +3,7 @@
 "locale":{
     "title":"SMMWE 关卡管理器",
     "game_styles":["SMB1","SMB3","SMW","NSMBU"],
-    "click_to_show":"点击一个关卡\n以查看详情",
+    "click_to_show":"点击一个关卡\r\n以查看详情",
     "loading":"正在加载中 ... ",
     "loading_configuration":"加载配置",
     "loading_level":"加载关卡",
@@ -27,7 +27,22 @@
     "qq":"QQ文件夹",
     "right_change":"右键点击以切换，左键点击以导航之",
     "import_completed":"导入成功！",
+    "export_completed":"导出成功！",
     "drag_tooltip":"可以直接把关卡拖到此处导入",
     "not_a_level":"这不是 SMMWE 关卡",
+    "err_need_a_level":"请先在游戏里保存至少一个关卡。",
+    "t_local_levels":"本地关卡",
+    "t_import":"导入关卡",
+    "t_export":"导出关卡",
+    "delete":"删除",
+    "more":"更多",
+    "refresh":"刷新",
+    "open_level_folder":"打开关卡文件夹",
+    "clear_cache":"清理缓存",
+    "clear_cache_text":["清理了 "," 的缓存"],
+    "about_text":["SMMWE 关卡管理器","By 是一刀斩哒","本程序可以让你方便地管理 SMMWE 的关卡，未来会添加更多功能。\r\n使用 Visual Basic 6 编写，以 GPL 协议开源。\r\nhttps://github.com/YidaozhanYa/SMMWELevelManager","谢志: VBJSON By Michael Glaser http://ediy.co.nz (BSD)\r\nBase64 库 By  neotechni\r\nStdPictureEx2 By LaVolpe"],
+    "version":"版本",
+    "delete_text":["确定要删除 "," 吗？","删除成功。"],
+    "wip_message":"登录功能及在线关卡暂未制作，等 3.2.3 手机版发布后再做，暂时无限期搁置。"
 }
 }
